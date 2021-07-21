@@ -1,7 +1,9 @@
 const express = require("express");
+const { findAll, createEvent } = require("../models/eventos");
+const { createInscription, validateEvent, existeInscripcion } = require("../models/inscripciones");
 let router = express.Router();
 
-let eventos = [
+let eventosArray = [
     {
         id: 0,
         nombre: 'Evento De Tecnologia'
@@ -12,7 +14,7 @@ let eventos = [
     }
 ];
 
-let inscripciones = [
+let inscripcionesArray = [
     {
         id: 0,
         email: 'patricia@acamica.com'
@@ -29,7 +31,9 @@ let respuesta = {
     mensaje: 'listado de eventos'
 }
 
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
+    const eventos = await findAll();
+
     respuesta = {
         error: false,
         codigo: 200,
@@ -39,7 +43,29 @@ router.get("/", (req, res) => {
     res.status(200).send(respuesta);
 });
 
-router.post('/', (req, res) => {
+//endpoint para crear eventos
+router.post('/', async (req, res) => {
+    if (typeof req.body.nombre == "string") {
+        const data = await createEvent(req.body);
+        respuesta = {
+            error: false,
+            codigo: 200,
+            mensaje: 'Evento creado'
+        }
+
+    } else {
+        respuesta = {
+            error: true,
+            codigo: 401,
+            mensaje: 'Evento erroneo'
+        }
+    }
+
+    res.status(respuesta.codigo).send(respuesta);
+});
+
+//endpoint para crear inscripciones a eventos
+router.post('/Inscripcion', async (req, res) => {
     const { email, id } = req.body;
 
     if (email.indexOf('gmail') !== -1 || email.indexOf('hotmail') !== -1 || email.indexOf('yahoo') !== -1) {
@@ -50,11 +76,12 @@ router.post('/', (req, res) => {
         }
     } else {
 
-        const validacion = inscripciones.find(inscripcion => inscripcion.email == email && inscripcion.id == id);
+        //const validacion = inscripciones.find(inscripcion => inscripcion.email == email && inscripcion.id == id);
 
-        console.log(inscripciones);
-        console.log("validacion", validacion);
-        if (validacion != undefined) {
+        const estaRegistrado = await existeInscripcion(req.body);
+
+        console.log("validacion", estaRegistrado);
+        if (estaRegistrado == true) {
             respuesta = {
                 error: true,
                 codigo: 401,
@@ -62,13 +89,14 @@ router.post('/', (req, res) => {
             }
         }
         else {
-            inscripciones.push(req.body);
 
-            console.log(inscripciones);
+            const inscripcion = await createInscription(req.body)
+
+            console.log(inscripcion);
             respuesta = {
                 error: false,
                 codigo: 200,
-                mensaje: `Usuario inscrito correctamente al evento ${id}`
+                mensaje: `Usuario inscripto correctamente al evento ${id}`
             }
         }
 
